@@ -78,7 +78,7 @@ with st.sidebar:
     else:
         # DEFAULT: This connects to your first Gale document (medical_db)
         if os.path.exists("./medical_db"):
-            vectorstore = Chroma(persist_directory="./medical_db", embedding_function=embeddings_model,collection_name="langchain")
+            vectorstore = Chroma(persist_directory="./medical_db", embedding_function=embeddings_model)
             # Added search_kwargs here too
             retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
             st.info("Using Gale Encyclopedia as knowledge base.")
