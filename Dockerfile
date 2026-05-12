@@ -18,4 +18,4 @@ EXPOSE 8501
 
 # 7. The command to run when the container starts
 # 7. Build the database, then run the app
-CMD sh -c "python ingest.py && streamlit run web_app.py --server.port=8501 --server.address=0.0.0.0"
+CMD ["streamlit", "run", "web_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
