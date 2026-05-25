@@ -9,7 +9,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
-
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 load_dotenv()
 
 # --- Page Config ---
@@ -22,9 +22,11 @@ st.subheader("Query the Encyclopedia or upload your own records")
 def load_models():
     # Pass API Key explicitly from env just in case
     api_key = os.getenv("NVIDIA_API_KEY")
-    embeddings = NVIDIAEmbeddings(
-        model="nvidia/llama-3.2-nemoretriever-300m-embed-v1",
-        api_key=api_key
+    hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+
+    embeddings = HuggingFaceEndpointEmbeddings(
+        model="BAAI/bge-small-en-v1.5",
+        huggingfacehub_api_token=hf_token
     )
     llm = ChatNVIDIA(
         model="nvidia/nemotron-mini-4b-instruct", 

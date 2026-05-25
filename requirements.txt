@@ -7,3 +7,5 @@ langchain-nvidia-ai-endpoints
 chromadb
 pypdf
 python-dotenv
+langchain-huggingface 
+huggingface_hub

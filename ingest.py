@@ -4,9 +4,10 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_community.vectorstores import Chroma
-
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 # Load environment variables from .env
 load_dotenv()
+hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
 # Configuration
 PDF_NAME = "The_GALE_ENCYCLOPEDIA_of_MEDICINE_SECOND (4).pdf"
@@ -30,11 +31,11 @@ def run_ingestion():
     )
     docs = text_splitter.split_documents(pages)
 
-    # 3. Initialize NVIDIA Embeddings
-    embeddings = NVIDIAEmbeddings(
-        model="nvidia/llama-3.2-nemoretriever-300m-embed-v1",
-        api_key=os.getenv("NVIDIA_API_KEY"),
-        truncate="NONE",
+    # 3. Initialize Embeddings
+
+    embeddings = HuggingFaceEndpointEmbeddings(
+        model="BAAI/bge-small-en-v1.5",
+        huggingfacehub_api_token=hf_token
     )
 
     # 4. Create and persist the Vector DB
