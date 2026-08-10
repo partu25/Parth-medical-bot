@@ -9,3 +9,7 @@ pypdf
 python-dotenv
 langchain-huggingface 
 huggingface_hub
+rank_bm25
+flashrank
+langchain-mistralai
+mistralai
