@@ -1,20 +1,19 @@
-# 1. Use an official, lightweight Python image
+# 1. Lightweight Python image
 FROM python:3.12-slim
 
-# 2. Set the working directory inside the container
+# 2. Working directory
 WORKDIR /app
 
-# 3. Copy just the requirements file first (makes building faster)
+# 3. Copy requirements and install
 COPY requirements.txt .
-
-# 4. Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Copy the rest of your app's code into the container
+# 4. Copy app files
 COPY . .
 
-# 6. Tell Docker which port Streamlit uses
-EXPOSE 8501
+# 5. Render dynamic port binding
+ENV PORT=10000
+EXPOSE 10000
 
-# 7. Build the database, then run the app
-CMD ["sh", "-c", "streamlit run web_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0"]
+# 6. Streamlit command with dynamic port
+CMD ["sh", "-c", "streamlit run web_app.py --server.port=${PORT:-10000} --server.address=0.0.0.0"]
