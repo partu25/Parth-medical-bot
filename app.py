@@ -1,23 +1,36 @@
 import os
 from dotenv import load_dotenv
-from langchain_nvidia_ai_endpoints import ChatNVIDIA, NVIDIAEmbeddings
+from langchain_mistralai import ChatMistralAI
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_community.embeddings.cloudflare_workersai import CloudflareWorkersAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import PromptTemplate
 from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
 
 load_dotenv()
-api_key = os.getenv("NVIDIA_API_KEY")
-hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-embeddings = NVIDIAEmbeddings(
-    model="nvidia/llama-3.2-nemoretriever-300m-embed-v1",
-    api_key=api_key
+mistral_api_key = os.getenv("MISTRAL_API_KEY")
+cf_account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID")
+cf_api_token = os.getenv("CLOUDFLARE_API_TOKEN")
+
+llm = ChatMistralAI(
+    model=os.getenv("MISTRAL_MODEL", "open-mistral-nemo"),
+    api_key=mistral_api_key,
+    temperature=0.2
 )
 
-embeddings = HuggingFaceEndpointEmbeddings(
-    model="BAAI/bge-small-en-v1.5",
-    huggingfacehub_api_token=hf_token
-)
+if cf_account_id and cf_api_token:
+    embeddings = CloudflareWorkersAIEmbeddings(
+        account_id=cf_account_id,
+        api_token=cf_api_token,
+        model_name="@cf/baai/bge-small-en-v1.5"
+    )
+else:
+    hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    embeddings = HuggingFaceEndpointEmbeddings(
+        model="BAAI/bge-small-en-v1.5",
+        huggingfacehub_api_token=hf_token
+    )
 
 if not os.path.exists("./medical_db"):
     print("Error: medical_db not found. Please run ingest.py first.")

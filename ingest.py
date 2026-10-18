@@ -5,6 +5,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_community.embeddings.cloudflare_workersai import CloudflareWorkersAIEmbeddings
 
 load_dotenv()
 hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
@@ -29,10 +30,20 @@ def run_ingestion():
     docs = text_splitter.split_documents(pages)
 
     
-    embeddings = HuggingFaceEndpointEmbeddings(
-        model="BAAI/bge-small-en-v1.5",
-        huggingfacehub_api_token=hf_token
-    )
+    cf_account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID")
+    cf_api_token = os.getenv("CLOUDFLARE_API_TOKEN")
+
+    if cf_account_id and cf_api_token:
+        embeddings = CloudflareWorkersAIEmbeddings(
+            account_id=cf_account_id,
+            api_token=cf_api_token,
+            model_name="@cf/baai/bge-small-en-v1.5"
+        )
+    else:
+        embeddings = HuggingFaceEndpointEmbeddings(
+            model="BAAI/bge-small-en-v1.5",
+            huggingfacehub_api_token=hf_token
+        )
 
     print(f"--- Embedding {len(docs)} chunks in batches of 100 to prevent API timeouts ---")
     

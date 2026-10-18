@@ -10,6 +10,7 @@ from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_community.embeddings.cloudflare_workersai import CloudflareWorkersAIEmbeddings
 from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever, ContextualCompressionRetriever
@@ -296,16 +297,25 @@ EMERGENCY_KEYWORDS = [
 @st.cache_resource
 def load_models():
     mistral_api_key = os.getenv("MISTRAL_API_KEY")
-    hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    cf_account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID")
+    cf_api_token = os.getenv("CLOUDFLARE_API_TOKEN")
 
-    embeddings = HuggingFaceEndpointEmbeddings(
-        model="BAAI/bge-small-en-v1.5",
-        huggingfacehub_api_token=hf_token
-    )
+    if cf_account_id and cf_api_token:
+        embeddings = CloudflareWorkersAIEmbeddings(
+            account_id=cf_account_id,
+            api_token=cf_api_token,
+            model_name="@cf/baai/bge-small-en-v1.5"
+        )
+    else:
+        hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+        embeddings = HuggingFaceEndpointEmbeddings(
+            model="BAAI/bge-small-en-v1.5",
+            huggingfacehub_api_token=hf_token
+        )
     
     # Official Mistral AI Client via ChatMistralAI
     llm = ChatMistralAI(
-        model="mistral-large-latest",
+        model=os.getenv("MISTRAL_MODEL", "open-mistral-nemo"),
         api_key=mistral_api_key,
         temperature=0.2
     )

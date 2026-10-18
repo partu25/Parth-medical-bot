@@ -3,12 +3,13 @@
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-00C7B7?style=for-the-badge&logo=render&logoColor=white)](https://medirag-ai.onrender.com)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Mistral AI](https://img.shields.io/badge/LLM-Mistral%20Large-FF7000?style=for-the-badge&logo=mistral&logoColor=white)](https://mistral.ai/)
+[![Mistral AI](https://img.shields.io/badge/LLM-Mistral%20Nemo-FF7000?style=for-the-badge&logo=mistral&logoColor=white)](https://mistral.ai/)
+[![Cloudflare Workers AI](https://img.shields.io/badge/Embeddings-Cloudflare%20Workers%20AI-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers-ai/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
 **MediRAG** is an enterprise-grade, production-ready Medical RAG (Retrieval-Augmented Generation) application grounded in the 750-page **Gale Encyclopedia of Medicine** and custom user-uploaded medical records. 
 
-By combining **BM25 Keyword Search** with **Chroma Vector Embeddings** and a **2nd-Stage FlashRank Cross-Encoder Reranker**, MediRAG eliminates hallucinations, delivers sub-second response times, and provides exact inline page citations.
+By combining **BM25 Keyword Search** with **Cloudflare Workers AI Vector Embeddings** and a **2nd-Stage FlashRank Cross-Encoder Reranker**, MediRAG eliminates hallucinations, delivers sub-second response times, and provides exact inline page citations.
 
 🚀 **Live App**: [https://medirag-ai.onrender.com](https://medirag-ai.onrender.com)
 
@@ -16,9 +17,10 @@ By combining **BM25 Keyword Search** with **Chroma Vector Embeddings** and a **2
 
 ## 🌟 Key Features
 
-- **⚡ Advanced Hybrid Retrieval**: Combines **BM25 Sparse Keyword Search** (for exact medical terms like *"HbA1c"* or drug dosages) and **Chroma Dense Vector Search** (`BAAI/bge-small-en-v1.5`) via LangChain `EnsembleRetriever`.
+- **⚡ Advanced Hybrid Retrieval**: Combines **BM25 Sparse Keyword Search** (for exact medical terms like *"HbA1c"* or drug dosages) and **Chroma Dense Vector Search** powered by **Cloudflare Workers AI** (`@cf/baai/bge-small-en-v1.5`) via LangChain `EnsembleRetriever`.
 - **🎯 2nd-Stage FlashRank Reranker**: Rescores retrieved candidate chunks using a local ONNX Cross-Encoder (`ms-marco-TinyBERT-L-2-v2`) to select the **top 3 hyper-relevant passages**.
-- **🤖 Native Mistral AI Integration**: Powered by Mistral's flagship **`mistral-large-latest`** model for expert clinical reasoning and strict context grounding.
+- **🤖 Native Mistral AI Integration**: Powered by Mistral's **`open-mistral-nemo`** model for expert clinical reasoning and strict context grounding.
+- **☁️ Cloudflare Workers AI Embeddings**: High-speed, serverless vector embeddings running on Cloudflare's global edge network with 0 gateway timeouts or paid credit barriers.
 - **📖 Page-Level Source Citations**: Formats prompt context using `[Page XXX]` tags, enabling inline source attribution and transparent source expandable cards.
 - **📄 Dynamic Custom PDF RAG**: Upload custom medical records/PDFs with instant indexing and session-state retriever caching.
 - **🚨 Emergency Symptom Detection**: Real-time keyword filter detecting life-threatening queries (*chest pain, stroke, severe bleeding*) to display high-priority emergency alerts.
@@ -42,7 +44,7 @@ By combining **BM25 Keyword Search** with **Chroma Vector Embeddings** and a **2
                  ┌───────────────────────────────┐
                  │  1st-Stage Hybrid Search      │
                  │  • BM25 Keyword Search (k=8)  │
-                 │  • Chroma Vector Search (k=8) │
+                 │  • Cloudflare Vector (k=8)    │
                  └───────────────┬───────────────┘
                                  │
                                  ▼
@@ -59,7 +61,7 @@ By combining **BM25 Keyword Search** with **Chroma Vector Embeddings** and a **2
                                  │
                                  ▼
                  ┌───────────────────────────────┐
-                 │ Mistral AI (mistral-large)    │
+                 │ Mistral AI (open-mistral-nemo)│
                  │ Direct Answer + Source Cards  │
                  └───────────────────────────────┘
 ```
@@ -71,8 +73,8 @@ By combining **BM25 Keyword Search** with **Chroma Vector Embeddings** and a **2
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
 | **Frontend UI** | Streamlit | Responsive SaaS web application |
-| **LLM Engine** | Mistral AI (`mistral-large-latest`) | Clinical text generation & reasoning |
-| **Embeddings** | Hugging Face (`BAAI/bge-small-en-v1.5`) | 384-dim dense vector embeddings |
+| **LLM Engine** | Mistral AI (`open-mistral-nemo`) | Clinical text generation & reasoning |
+| **Embeddings** | Cloudflare Workers AI (`@cf/baai/bge-small-en-v1.5`) | Serverless 384-dim dense vector embeddings |
 | **Vector Store** | ChromaDB | Local persistent vector storage |
 | **Keyword Search** | BM25 (`rank_bm25`) | Sparse keyword indexing |
 | **Reranker** | FlashRank (`ms-marco-TinyBERT-L-2-v2`) | ONNX 2nd-stage cross-encoder reranking |
@@ -108,7 +110,8 @@ pip install -r requirements.txt
 Create a `.env` file in the root directory:
 ```env
 MISTRAL_API_KEY=your_mistral_api_key_here
-HUGGINGFACEHUB_API_TOKEN=your_huggingface_token_here
+CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id_here
+CLOUDFLARE_API_TOKEN=your_cloudflare_api_token_here
 ```
 
 ### 6. (Optional) Run Ingestion
@@ -148,10 +151,10 @@ docker run -p 8501:10000 --env-file .env medirag-ai
 │   └── config.toml          # Streamlit server & port configuration
 ├── medical_db/              # Pre-indexed ChromaDB vector store (750-page encyclopedia)
 ├── Dockerfile               # Docker configuration for Render deployment
-├── ingest.py                # Document splitting & embedding script
+├── ingest.py                # Document splitting & Cloudflare embedding script
 ├── web_app.py               # Main Streamlit web application & MediRAG UI
 ├── requirements.txt         # Python dependencies
-├── .env                     # Environment variables (API Keys)
+├── .env                     # Environment variables (API Keys & Credentials)
 └── README.md                # Project documentation
 ```
 
