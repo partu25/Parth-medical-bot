@@ -308,12 +308,14 @@ def load_models():
             api_token=cf_api_token,
             model_name="@cf/baai/bge-small-en-v1.5"
         )
+        provider = "Cloudflare Workers AI"
     else:
         hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
         embeddings = HuggingFaceEndpointEmbeddings(
             model="BAAI/bge-small-en-v1.5",
             huggingfacehub_api_token=hf_token
         )
+        provider = "HuggingFace (Fallback)"
     
     # Official Mistral AI Client via ChatMistralAI
     llm = ChatMistralAI(
@@ -321,9 +323,9 @@ def load_models():
         api_key=mistral_api_key,
         temperature=0.2
     )
-    return embeddings, llm
+    return embeddings, llm, provider
 
-embeddings_model, llm_model = load_models()
+embeddings_model, llm_model, embedding_provider = load_models()
 
 def build_hybrid_reranked_retriever(_vectorstore):
     """Builds Hybrid Search (BM25 + Vector) + 2nd-Stage FlashRank Reranker."""
@@ -411,6 +413,13 @@ with st.sidebar:
     for q in sample_queries:
         if st.button(f"👉 {q}", use_container_width=True):
             st.session_state["sample_prompt"] = q
+
+    st.markdown("---")
+    st.markdown('<div class="sidebar-section-header">⚙️ System Configuration</div>', unsafe_allow_html=True)
+    if embedding_provider == "Cloudflare Workers AI":
+        st.caption("⚡ **Embeddings**: Cloudflare Workers AI (`bge-small-en-v1.5`)")
+    else:
+        st.warning("⚠️ **Embeddings**: HuggingFace (Fallback). To avoid 402 payment errors, set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in Render Environment Variables.")
 
     st.markdown("---")
     st.markdown('<div class="sidebar-section-header">📄 Upload Custom Documents</div>', unsafe_allow_html=True)
@@ -557,7 +566,13 @@ if retriever:
                     sources = response.get("source_documents", [])
                     st.markdown(answer)
                 except Exception as e:
-                    st.error(f"⚠️ **Mistral API Error**: {e}")
+                    err_msg = str(e)
+                    if "402" in err_msg or "router.huggingface.co" in err_msg or "payment required" in err_msg.lower():
+                        st.error("⚠️ **Hugging Face Embedding Error (402 Payment Required)**: Hugging Face serverless inference credits are exhausted.\n\n👉 **Fix**: Please add `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` to your **Render Dashboard → Environment** tab to use 100% free Cloudflare Workers AI embeddings.")
+                    elif "mistral" in err_msg.lower():
+                        st.error(f"⚠️ **Mistral API Error**: {err_msg}")
+                    else:
+                        st.error(f"⚠️ **Query Processing Error**: {err_msg}")
                     st.stop()
 
                 if sources:
