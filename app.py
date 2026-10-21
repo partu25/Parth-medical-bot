@@ -36,8 +36,12 @@ if not os.path.exists("./medical_db"):
     print("Error: medical_db not found. Please run ingest.py first.")
     exit()
 
+import chromadb
+db_path = os.path.abspath("./medical_db")
+client = chromadb.PersistentClient(path=db_path)
 vector_db = Chroma(
-    persist_directory="./medical_db", 
+    client=client,
+    persist_directory=db_path, 
     embedding_function=embeddings
 )
 

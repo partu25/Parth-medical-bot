@@ -1,6 +1,8 @@
 import streamlit as st
 import os
 import tempfile
+import chromadb
+from flashrank import Ranker
 from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI
 from langchain_community.vectorstores import Chroma
@@ -344,12 +346,32 @@ def build_hybrid_reranked_retriever(_vectorstore):
     )
     
     # 4. FlashRank 2nd-Stage Cross-Encoder Reranker (Top 3)
-    compressor = FlashrankRerank(model="ms-marco-TinyBERT-L-2-v2", top_n=3)
+    flashrank_dir = os.path.abspath("./flashrank_cache")
+    if os.path.exists(flashrank_dir):
+        ranker_client = Ranker(model_name="ms-marco-TinyBERT-L-2-v2", cache_dir=flashrank_dir)
+        compressor = FlashrankRerank(client=ranker_client, top_n=3)
+    else:
+        compressor = FlashrankRerank(model="ms-marco-TinyBERT-L-2-v2", top_n=3)
+
     reranked_retriever = ContextualCompressionRetriever(
         base_compressor=compressor,
         base_retriever=ensemble_retriever
     )
     return reranked_retriever
+
+@st.cache_resource
+def get_persistent_retriever(_embeddings):
+    """Loads and caches the persistent ChromaDB client and hybrid reranked retriever."""
+    db_path = os.path.abspath("./medical_db")
+    if not os.path.exists(db_path):
+        return None
+    client = chromadb.PersistentClient(path=db_path)
+    vectorstore = Chroma(
+        client=client,
+        persist_directory=db_path,
+        embedding_function=_embeddings
+    )
+    return build_hybrid_reranked_retriever(vectorstore)
 
 DOCUMENT_PROMPT = PromptTemplate(
     template="[Page {page}]: {page_content}",
@@ -424,13 +446,11 @@ with st.sidebar:
             st.session_state.pop("custom_pdf_name", None)
             st.session_state.pop("custom_retriever", None)
 
-        if os.path.exists("./medical_db"):
-            vectorstore = Chroma(persist_directory="./medical_db", embedding_function=embeddings_model)
-            retriever = build_hybrid_reranked_retriever(vectorstore)
+        retriever = get_persistent_retriever(embeddings_model)
+        if retriever is not None:
             st.info("📚 Active Knowledge Base: Gale Encyclopedia of Medicine")
         else:
             st.error("Encyclopedia (medical_db) not found. Please run ingest.py or upload a PDF.")
-            retriever = None
 
     if st.session_state.get("messages"):
         st.markdown("---")

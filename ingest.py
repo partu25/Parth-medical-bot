@@ -47,8 +47,15 @@ def run_ingestion():
 
     print(f"--- Embedding {len(docs)} chunks in batches of 100 to prevent API timeouts ---")
     
-    # Initialize Chroma store
-    vector_db = Chroma(persist_directory=PERSIST_DIR, embedding_function=embeddings)
+    # Initialize Chroma store with PersistentClient
+    import chromadb
+    db_path = os.path.abspath(PERSIST_DIR)
+    client = chromadb.PersistentClient(path=db_path)
+    vector_db = Chroma(
+        client=client,
+        persist_directory=db_path,
+        embedding_function=embeddings
+    )
     
     # Ingest in small batches of 100 to avoid HuggingFace API timeouts
     batch_size = 100
